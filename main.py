@@ -3,7 +3,7 @@ from pprint import pprint
 from requests_tool import RequestsTool as RT
 import random
 import time
-
+import json
 
 class Learn_Cbit:
     def __init__(self, cookie, token, tcid, speed=1.5) -> None:
@@ -81,8 +81,8 @@ class Learn_Cbit:
 
 
 if __name__ == "__main__":
-    token = "your token"
-    cookie = "your cookie"
-    tcid = "your lession id"
-    lc = Learn_Cbit(token=token, cookie=cookie, tcid=tcid, speed=1.5)
+    file_path = 'D:\\Twikura\\token.json'
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    lc = Learn_Cbit(token=data['token'], cookie=data['cookie'], tcid=data['tcid'], speed=1.5)
     lc.learn()
