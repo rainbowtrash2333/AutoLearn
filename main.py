@@ -5,6 +5,7 @@ import random
 import time
 import json
 
+
 class Learn_Cbit:
     def __init__(self, cookie, token, tcid, speed=1.5) -> None:
         self.cookie = cookie
@@ -19,8 +20,12 @@ class Learn_Cbit:
         url = base_url + urlencode(data)
         rt = RT(cookie=self.cookie, token=self.token, referer=url)
         result = rt.get(url=url)
-        if result != 0:
-            return result["traininglesson"]
+        for i in range(10):
+            if result is None or result.get('traininglesson') is None:
+                result = rt.get(url=url)
+            else:
+                break
+        return result["traininglesson"]
 
     def get_item_id(self, lessonID) -> dict:
         base_url = "https://learning.cbit.com.cn/www//lessonDetails/details.do?"
@@ -28,8 +33,12 @@ class Learn_Cbit:
         url = base_url + urlencode(data)
         rt = RT(cookie=self.cookie, token=self.token, referer=url)
         result = rt.get(url=url)
-        if result != 0:
-            return result["lessonitem"]
+        for i in range(10):
+            if  result.get('lessonitem') is None or result is None:
+                result = rt.get(url=url)
+            else:
+                break
+        return result["lessonitem"]
 
     def post_schedule(self, lessonId, itemId, tcid, totalTime, studyplan=0):
         base_url = (
@@ -56,10 +65,8 @@ class Learn_Cbit:
             }
             url = base_url + urlencode(data)
             rt = RT(cookie=self.cookie, token=self.token, referer=url)
-            result = rt.post(url=url, data=data)
-            if result == 0:
-                print("error")
-                break
+            for i in range(3):
+                result = rt.post(url=url, data=data)
 
     def learn(self):
         # 获得lessonID
@@ -84,5 +91,6 @@ if __name__ == "__main__":
     file_path = 'D:\\Twikura\\token.json'
     with open(file_path, 'r') as file:
         data = json.load(file)
-    lc = Learn_Cbit(token=data['token'], cookie=data['cookie'], tcid=data['tcid'], speed=1.5)
+    lc = Learn_Cbit(
+        token=data['token'], cookie=data['cookie'], tcid=data['tcid'], speed=1.5)
     lc.learn()
