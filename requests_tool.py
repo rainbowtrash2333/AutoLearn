@@ -27,12 +27,12 @@ class RequestsTool:
         if response.status_code == 200:
             return  dict(response.json())
         else:
-            print(response.status_code + " "+url)
+            print(str(response.status_code) + " get "+url)
             return '0'
     def post(self,data,url)->str:
         response = requests.post(url, data=data, headers=self.header)
         if response.status_code == 200:
-            return  response.text
+            return  dict(response.json())
         else:
-            print(response.status_code + " "+url)
+            print(str(response.status_code) + " post "+url)
             return '0'
