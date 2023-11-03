@@ -1,19 +1,46 @@
+import urllib.parse
 from urllib.parse import urlencode
 from pprint import pprint
+import AESCipher
 from requests_tool import RequestsTool as RT
 import random
 import time
 import json
 import concurrent.futures
+import requests
+
 
 class Learn_Cbit:
-    def __init__(self, name, cookie, token, tcid, speed=1.5) -> None:
+    def __init__(self, name, cookie, token, tcid, passwrd='Abcd1234', speed=1.5) -> None:
         self.name = name
+        self.passwrd = passwrd
         self.cookie = cookie
         self.token = token
         self.tcid = tcid
         self.speed = speed  # 1.5倍数
         print(self.name + ": 开启" + str(speed) + "倍速")
+
+    def get_sessionIDCookie(self):
+        base_url = r'https://learning.cbit.com.cn/www/views/checking.jsp'
+        header = {
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6,zh-TW;q=0.5",
+            "Connection": "keep-alive",
+            "Host": "learning.cbit.com.cn",
+            'Referer': " https: // learning.cbit.com.cn / www / views / index / index.html?sid = 0.8764445849584661",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.0.0",
+            "X-Requested-With": "XMLHttpRequest",
+            "sec-ch-ua": '"Not/A)Brand";v="99", "Microsoft Edge";v="115", "Chromium";v="115"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+        }
+        response = requests.get(base_url, headers=header)
+        if response.status_code == 200:
+            return dict(response.headers)['Set-Cookie'].split(', ')[-1].split('=')[-1]
+
+    def login(self):
+        pass
 
     def get_lessons_id(self) -> dict:
         base_url = "https://learning.cbit.com.cn/www/onlineTraining/trainingdetails.do?"
@@ -74,6 +101,7 @@ class Learn_Cbit:
     def learn(self):
         # 获得lessonID
         lessonsID = self.get_lessons_id()
+        print(0)
         for lessonID in lessonsID:
             lession_infomation = self.get_item_id(lessonID["id"])
             for li in lession_infomation:
@@ -92,11 +120,11 @@ class Learn_Cbit:
 
 def learn_task(user_info):
     lc = Learn_Cbit(name=user_info['name'],
-                    token=user_info['token'], cookie=user_info['cookie'], tcid=user_info['tcid'], speed=1.5)
+                    token=user_info['token'], cookie=user_info['cookie'], tcid=user_info['tcid'], speed=5)
     lc.learn()
 
 
-if __name__ == "__main__":
+if __name__ == "__main1__":
     file_path = 'D:\\Twikura\\token.json'
     with open(file_path, 'r') as file:
         users = json.load(file)
@@ -104,3 +132,37 @@ if __name__ == "__main__":
     with concurrent.futures.ThreadPoolExecutor(max_threads) as executor:
         for u in users:
             executor.submit(learn_task, u)
+
+if __name__ == '__main__':
+    base_url = 'https://learning.cbit.com.cn/www/views/checking.jsp?dt=' + urllib.parse.quote(' ' + time.strftime(
+        "%a %b %d %Y %H:%M:%S")) + '%20GMT+0800%20(%E4%B8%AD%E5%9B%BD%E6%A0%87%E5%87%86%E6%97%B6%E9%97%B4)'
+    headers = {
+        "Accept": "image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "Accept-Encoding": 'gzip, deflate, br',
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6,zh-TW;q=0.5",
+        "Host": "earning.cbit.com.cn",
+        "Connection": "keep-alive",
+        'Referer': r'https://learning.cbit.com.cn/www/views/index/index.html?sid=0.8764445849584661',
+        'Sec-Fetch-Dest': "image",
+        'Sec-Fetch-Mode': 'no-cors',
+        'Sec-Fetch-Site': 'same-origin',
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.0.0",
+        "X-Requested-With": "XMLHttpRequest",
+        "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+    }
+    print(base_url)
+    url = r'https://learning.cbit.com.cn/www/views/checking.jsp?'
+    # https://learning.cbit.com.cn/www/views/checking.jsp?dt= Fri Nov 03 2023 17:29:57 GMT+0800 (中国标准时间)
+    data = {
+        'dt': time.strftime("%a %b %d %Y %H:%M:%S") + ' GMT+0800 (中国标准时间)'
+    }
+    proxy = {
+        'http': '127.0.0.1:8888',
+    }
+    response = requests.get(url=base_url, headers=headers, proxies=proxy,verify=False)
+    if response.status_code == 200:
+        print(dict(response.headers))
+    else:
+        print(response.status_code)
