@@ -1,18 +1,18 @@
 import urllib.parse
 from urllib.parse import urlencode
-from pprint import pprint
 from AESCipher import AESCipher
 import requests_tool as RT
 import random
 import time
 import json
-import concurrent.futures
-import requests
-import shutil
-from PIL import Image
-import io
 import easyocr
 import logging
+import concurrent.futures
+
+
+class DictNONeedKey(Exception):
+    def __init__(self, message):
+        self.message = message
 
 
 class Learn_Cbit:
@@ -21,6 +21,8 @@ class Learn_Cbit:
     # passwd 登录密码, 默认为Abcd1234
     # speed 刷课速度，默认为1.5倍数
     # level filename filemode  日志系统参数
+    logger = logging.getLogger('my_app')
+
     def __init__(self, name, tcid, passwrd='Abcd1234', speed=1.5, level=logging.INFO, filename='app.log',
                  filemode='a') -> None:
         self.name = name
@@ -50,7 +52,7 @@ class Learn_Cbit:
                             filemode=filemode,
                             encoding='utf-8')
         console_handler = logging.StreamHandler()  # 创建控制台处理程序
-        self.logger = logging.getLogger('my_app')
+        self.logger = logging.getLogger(name)
         self.logger.addHandler(console_handler)
         self.logger.info(f'{self.name}: 开启{str(speed)}倍速')
 
@@ -107,9 +109,16 @@ class Learn_Cbit:
         base_url = "https://learning.cbit.com.cn/www//lessonDetails/details.do"
         data = {"tcid": self.tcid, "lessonId": lessonID}
         #  url = base_url + urlencode(data)
-        for i in range(5):
+        flag = 0
+        result = {}
+        while flag < 5:
             result = dict(RT.post(data, url=base_url, headers=self.headers).json())
-        return result["lessonitem"]
+            if 'lessonitem' in result:
+                return result["lessonitem"]
+
+        print(result)
+        print(data)
+        raise DictNONeedKey(f"the dict has not the key named lessonitem")
 
     def post_schedule(self, lessonId, itemId, tcid, totalTime, studyplan=0):
         base_url = (
@@ -156,6 +165,7 @@ class Learn_Cbit:
                     li["all_times"],
                     li["studyplan"],
                 )
+        self.logger.info(f'=========={self.name} 完成所有课程！==========')
 
 
 def learn_task(user_info):
@@ -168,10 +178,9 @@ if __name__ == "__main__":
     file_path = 'D:\\Twikura\\token.json'
     with open(file_path, 'r') as file:
         users = json.load(file)
-    # max_threads = len(users)
-    # with concurrent.futures.ThreadPoolExecutor(max_threads) as executor:
-    #     for u in users:
-    #         executor.submit(learn_task, u)
-    for u in users:
-        learn_task(u)
-
+    max_threads = len(users)
+    with concurrent.futures.ThreadPoolExecutor(max_threads) as executor:
+        for u in users:
+            executor.submit(learn_task, u)
+    # for u in users:
+    #     learn_task(u)
