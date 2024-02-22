@@ -18,12 +18,12 @@ class DictNONeedKey(Exception):
 class Learn_Cbit:
     # name 登录名，一般为电话号码
     # tcid 课程id
-    # passwd 登录密码, 默认为Abcd1234
+    # passwd 登录密码, 默认为passwd
     # speed 刷课速度，默认为1.5倍数
     # level filename filemode  日志系统参数
     logger = logging.getLogger('my_app')
 
-    def __init__(self, name, tcid, passwrd='Abcd1234', speed=1.5, level=logging.INFO, filename='app.log',
+    def __init__(self, name, tcid, passwrd='passwd', speed=1.5, level=logging.INFO, filename='app.log',
                  filemode='a') -> None:
         self.name = name
         self.passwrd = passwrd
