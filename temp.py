@@ -1,22 +1,11 @@
-test = {'Connection': 'keep-alive', 'Pragma': 'no-cache', 'Cache-Control': 'no-cache',
-        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"', 'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"', 'Upgrade-Insecure-Requests': '1',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Sec-Fetch-Site': 'none', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-User': '?1', 'Sec-Fetch-Dest': 'document',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6,zh-TW;q=0.5',
-        'sessionID': 'M8Sj6G56fhHGa5cfAmoEJkEq2c2QMpU8cp43xL_2PYiVaRRF6jAP!-1295306814!1699262000762',
-        'token': 'eyJ0eXAiOiJKV1QiLCJ0eXBlIjoiSldUIiwiZW5jcnlwdGlvbiI6IkhTMjU2IiwiYWxnIjoiSFMyNTYifQ.eyJUaW1lIjoxNjk5MjYyMDAxNDkyLCJleHAiOjE2OTkzNDg0MDEsInVzZXJJZCI6IjNkY2U4ZmUxMWU0ZjRmMjdiYTJlNTViMTIzZTkzOWU2IiwidXNlckNvZGUiOiIxOTE4NDIzNjI0NCJ9.GTq4lPOp340C2RuMoeXUw7wwZr_myp3venLpnp8RrQA',
-        'Cookie': (
-            'AlteonP=0a140c040aff050632ff01e21b13; JSESSIONID=M8Sj6G56fhHGa5cfAmoEJkEq2c2QMpU8cp43xL_2PYiVaRRF6jAP!-1295306814',)}
-test2 = {'Connection': 'keep-alive', 'Pragma': 'no-cache', 'Cache-Control': 'no-cache',
-         'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"', 'sec-ch-ua-mobile': '?0',
-         'sec-ch-ua-platform': '"Windows"', 'Upgrade-Insecure-Requests': '1',
-         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
-         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-         'Sec-Fetch-Site': 'none', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-User': '?1', 'Sec-Fetch-Dest': 'document',
-         'Accept-Encoding': 'gzip, deflate, br',
-         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6,zh-TW;q=0.5',
-         'sessionID': 'D5Wj6oIspL8Ye211EEPQBBWx-NfqRIR4SCS5m3_0rXO-reNwNMSy!-1180849737!1699262136876',
-         'token': 'eyJ0eXAiOiJKV1QiLCJ0eXBlIjoiSldUIiwiZW5jcnlwdGlvbiI6IkhTMjU2IiwiYWxnIjoiSFMyNTYifQ.eyJUaW1lIjoxNjk5MjYyMTM3NjE0LCJleHAiOjE2OTkzNDg1MzcsInVzZXJJZCI6IjNkY2U4ZmUxMWU0ZjRmMjdiYTJlNTViMTIzZTkzOWU2IiwidXNlckNvZGUiOiIxOTE4NDIzNjI0NCJ9.QGDJ6WxxNXJzT6vQu6z-dJksFjj9hLSpU3SIUmNgoxY'}
+import requests
+
+if __name__ == '__main__':
+    url = "https://api.telegram.org"
+    proxies = {
+        'http': 'http://192.168.31.152:7890',
+        'https': 'http://192.168.31.152:7890',
+    }
+
+    response = requests.get(url, proxies=proxies)
+    print(response.status_code)

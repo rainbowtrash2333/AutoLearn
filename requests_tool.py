@@ -52,5 +52,8 @@ def get(url, headers=default_headers):
 
 @repeat_decorator(repeat_times)
 def post(data, url, headers=default_headers):
+
     response = requests.post(url, data=data, headers=headers)
+   # print(f"url:{url}\tdata:{data}")
+  #  print(response.text)
     return response
