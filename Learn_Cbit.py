@@ -119,7 +119,7 @@ class Learn_Cbit:
             for i in range(self.retry):
                 result = RT.post(url=url, data=data, headers=self.headers)
 
-        if self.mode == 'monal':
+        if self.mode == 'nomal':
             studytime = totalTime * studyplan / 100
             while totalTime > studytime:
                 self.logger.info(f"{self.name}: 已经学习了{str(studytime)}秒，还剩{str(totalTime - studytime)}秒")
