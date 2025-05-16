@@ -1,0 +1,26 @@
+[project]
+name = "autolearn"
+version = "0.1.0"
+description = "自动学习https://learning.cbit.com.cn 的课程"
+authors = [
+    {name = "twikura",email = "rainbowtrash2333@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pycryptodomex (>=3.22.0,<4.0.0)",
+    "easyocr (>=1.7.2,<2.0.0)",
+    "requests (>=2.32.3,<3.0.0)",
+    "aiohttp (>=3.11.18,<4.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "mirrors"
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
+priority = "primary"
+

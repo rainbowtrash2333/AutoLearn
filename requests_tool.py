@@ -1,15 +1,34 @@
+from typing import Optional, Callable, Any, Union
+from functools import wraps
 import requests
-from urllib.parse import urlencode
 
-repeat_times = 5  # 重复5次
+class RequestError(Exception):
+    """自定义请求异常基类"""
 
-
-class Non200Error(Exception):
-    def __init__(self, message):
+    def __init__(self, message: str, url: Optional[str] = None, status_code: Optional[int] = None):
         self.message = message
+        self.url = url
+        self.status_code = status_code
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f"{self.message} (URL: {self.url}, Status: {self.status_code})"
 
 
-default_headers = {
+class Non200Error(RequestError):
+    """非200状态码异常"""
+    pass
+
+
+class RetryExhaustedError(RequestError):
+    """重试次数耗尽异常"""
+    pass
+
+
+DEFAULT_RETRIES = 5
+DEFAULT_TIMEOUT = 10  # 默认超时时间
+
+DEFAULT_HEADERS = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
     "Accept-Encoding": "gzip, deflate, br",
     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6,zh-TW;q=0.5",
@@ -26,34 +45,124 @@ default_headers = {
 }
 
 
-# if http status code is not 200, then repeat n times
-def repeat_decorator(func, n=repeat_times):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            status_code = 0
-            for i in range(n):
-                response = func(*args, **kwargs)
-                status_code = response.status_code
-                if status_code == 200:
+def retry(
+        max_retries: int = DEFAULT_RETRIES,
+        allowed_methods: tuple = ("GET", "POST"),
+        handled_status_codes: tuple = (500, 502, 503, 504),
+        handled_exceptions: tuple = (requests.exceptions.ConnectionError, requests.exceptions.Timeout)
+) -> Callable:
+    """
+    请求重试装饰器
+
+    :param max_retries: 最大重试次数
+    :param allowed_methods: 需要重试的HTTP方法
+    :param handled_status_codes: 需要重试的状态码
+    :param handled_exceptions: 需要重试的异常类型
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> requests.Response:
+            last_exception = None
+            response = None
+
+            for attempt in range(max_retries + 1):
+                try:
+                    response = func(*args, **kwargs)
+
+                    # 检查状态码
+                    if response.status_code != 200:
+                        if response.status_code in handled_status_codes:
+                            raise Non200Error(
+                                f"Invalid status code: {response.status_code}",
+                                url=response.url,
+                                status_code=response.status_code
+                            )
+                        else:
+                            return response  # 返回非200但不在处理列表中的响应
+
                     return response
-            if status_code != 200:
-                raise Non200Error(f'{response.url} http status code is {str(status_code)},  is not 200!')
+
+                except handled_exceptions as e:
+                    last_exception = e
+
+                    if attempt == max_retries:
+                        break
+                    continue
+
+                except Exception as e:
+                    raise RequestError(
+                        f"Unhandled exception occurred: {str(e)}",
+                        url=getattr(response, 'url', None),
+                        status_code=getattr(response, 'status_code', None)
+                    ) from e
+
+            raise RetryExhaustedError(
+                f"Max retries ({max_retries}) exceeded",
+                url=getattr(response, 'url', None),
+                status_code=getattr(response, 'status_code', None)
+            ) from last_exception
 
         return wrapper
 
     return decorator
 
 
-@repeat_decorator(repeat_times)
-def get(url, headers=default_headers):
-    response = requests.get(url, headers=headers)
+@retry()
+def get(
+        url: str,
+        headers: Optional[dict] = None,
+        params: Optional[dict] = None,
+        timeout: float = DEFAULT_TIMEOUT
+) -> requests.Response:
+    """
+    带重试功能的GET请求
+
+    :param url: 请求URL
+    :param headers: 请求头，默认使用DEFAULT_HEADERS
+    :param params: 查询参数
+    :param timeout: 超时时间（秒）
+    """
+    final_headers = DEFAULT_HEADERS.copy()
+    if headers:
+        final_headers.update(headers)
+
+    response = requests.get(
+        url,
+        headers=final_headers,
+        params=params,
+        timeout=timeout
+    )
+
     return response
 
 
-@repeat_decorator(repeat_times)
-def post(data, url, headers=default_headers):
+@retry()
+def post(
+        url: str,
+        data: Optional[dict] = None,
+        headers: Optional[dict] = None,
+        json: Optional[dict] = None,
+        timeout: float = DEFAULT_TIMEOUT
+) -> requests.Response:
+    """
+    带重试功能的POST请求
 
-    response = requests.post(url, data=data, headers=headers)
-   # print(f"url:{url}\tdata:{data}")
-  #  print(response.text)
+    :param url: 请求URL
+    :param data: 表单数据
+    :param headers: 请求头，默认使用DEFAULT_HEADERS
+    :param json: JSON数据
+    :param timeout: 超时时间（秒）
+    """
+    final_headers = DEFAULT_HEADERS.copy()
+    if headers:
+        final_headers.update(headers)
+
+    response = requests.post(
+        url,
+        headers=final_headers,
+        data=data,
+        json=json,
+        timeout=timeout
+    )
     return response

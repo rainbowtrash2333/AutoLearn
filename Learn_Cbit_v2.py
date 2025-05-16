@@ -8,7 +8,6 @@ import easyocr
 import logging
 from yamlUtils import Config
 from exceptions import *
-import asyncio
 
 
 class Learn_Cbit:
@@ -18,11 +17,11 @@ class Learn_Cbit:
     # passwd 登录密码
     # speed 刷课速度，默认为1.5倍数
     # level filename filemode  日志系统参数
-    def __init__(self, phone, name, tcid, passwrd='123456') -> None:
+    def __init__(self, phone, name, lessonLibrary_id, password='123456') -> None:
         config = Config.get_config()
         self.phone = phone
-        self.passwrd = passwrd
-        self.tcid = tcid
+        self.password = password
+        self.lessonLibrary_id = lessonLibrary_id
         self.headers = config['headers']
         self.retry = config['Learn_Cbit']['retry']
         self.speed = config['Learn_Cbit']['speed']
@@ -38,10 +37,10 @@ class Learn_Cbit:
         self.logger = logging.getLogger(phone)
         self.logger.addHandler(console_handler)
 
-    def login(self):
+    def __login(self):
         OCRreader = easyocr.Reader(['ch_sim'])
         encryption = AESCipher('dacf107e4bdbbef0', 'bcancid682e09aec')
-        self.logger.debug(f"{self.name}尝试登录")
+        self.logger.info(f"{self.name}尝试登录")
         verification_code_url = 'https://learning.cbit.com.cn/www/views/checking.jsp?dt=' + urllib.parse.quote(
             ' ' + time.strftime(
                 "%a %b %d %Y %H:%M:%S")) + '%20GMT+0800%20(%E4%B8%AD%E5%9B%BD%E6%A0%87%E5%87%86%E6%97%B6%E9%97%B4)'
@@ -61,7 +60,7 @@ class Learn_Cbit:
             self.headers['sessionID'] = sessionID
             # 登录
             en_name = encryption.encrypt(self.phone).decode()
-            en_passwd = encryption.encrypt(self.passwrd).decode()
+            en_passwd = encryption.encrypt(self.password).decode()
             self.logger.debug(f"en_name: {en_name}\ten_passwd: {en_passwd}")
 
             login_data = {'username': en_name, 'password': en_passwd,
@@ -81,29 +80,40 @@ class Learn_Cbit:
         else:
             raise login_failed(f"{self.name} login failed")
 
-    def get_lessons_id(self) -> []:
-        self.logger.debug('获得lessons id')
-        base_url = "https://learning.cbit.com.cn/www/onlineTraining/trainingdetails.do?"
-        data = {"id": self.tcid}
-        url = base_url + urlencode(data)
-        result = dict(RT.get(url=url, headers=self.headers).json())
-        self.logger.debug(result)
-        print(f"result:{RT.get(url=url, headers=self.headers).json()}")
-        return result["traininglesson"]
+    def learn(self):
+        self.__login()
+        lesson_id_list = self.__get_lessons_id()
+        for lesson_id in lesson_id_list:
+            lesson_item_list = self.__get_lesson_items_id(lesson_id)
+            for lesson_item in lesson_item_list:
+                self.__post_schedule(lessonId=lesson_id, itemId=lesson_item["id"], totalTime=lesson_item["time"])
 
-    def get_item_id(self, lessonID) -> str | None:
+    def __get_lessons_id(self) -> list[str]:
+        base_url = "https://learning.cbit.com.cn/www/lesson/selectLessonApp.do"
+        data = {"leName": "", "keyword": "", "pageSize": 999, "sort": "createtime",
+                "id": self.lessonLibrary_id, "level": 5, "pagetitle": "lessonLibrary"}
+        response = RT.post(url=base_url, data=data, headers=self.headers)
+        result = dict(response.json())
+        lesson_id_list = [lesson["id"] for lesson in result["lessonList"]]
+        self.logger.debug(f"__get_lessons->lesson_id_list:{lesson_id_list}")
+        return lesson_id_list
+
+    def __get_lesson_items_id(self, lessonID: str) -> list[dict[str, str]] | None:
         base_url = "https://learning.cbit.com.cn/www//lessonDetails/details.do"
-        data = {"tcid": self.tcid, "lessonId": lessonID}
-        #  url = base_url + urlencode(data)
+        data = {"lessonId": lessonID}
         result = {}
         for i in range(self.retry):
-            response = RT.post(data, url=base_url, headers=self.headers)
+            response = RT.post(url=base_url, data=data, headers=self.headers)
             if len(response.text) > 6:
                 result = dict(response.json())
                 if 'lessonitem' in result:
-                    return result["lessonitem"]
+                    result = [{"id": lesson_item["le_id"], "time": lesson_item["all_times"]} for lesson_item in
+                              result["lessonitem"]]
 
-    async def post_schedule(self, lessonId, itemId, tcid, totalTime, studyplan=0):
+                    self.logger.debug(f"__get_lesson_items_id->result:{result}")
+                    return result
+
+    def __post_schedule(self, lessonId: str, itemId, totalTime, studyplan=0):
         base_url = (
             "https://learning.cbit.com.cn/www/lessonDetails/updateLessonProcessPC.do?"
         )
@@ -111,7 +121,7 @@ class Learn_Cbit:
             "lessonId": lessonId,
             "lessonItemId": itemId,
             "process": "-2",
-            "tcid": tcid,
+            "tcid": 'null',
             "totalTime": totalTime,
         }
 
@@ -127,7 +137,7 @@ class Learn_Cbit:
             while totalTime > studytime:
                 self.logger.info(f"{self.name}: 已经学习了{str(studytime)}秒，还剩{str(totalTime - studytime)}秒")
                 random_num = random.randint(20, 80) // self.speed
-                await asyncio.sleep(random_num)
+                time.sleep(random_num)
                 studytime = (
                     studytime + random_num * self.speed
                     if totalTime > studytime + random_num * self.speed
@@ -139,36 +149,21 @@ class Learn_Cbit:
                 for i in range(self.retry):
                     result = RT.post(url=url, data=data, headers=self.headers)
 
-    def learn(self):
-        # 获得lessonID
-        self.login()
-        lessonsID = self.get_lessons_id()
-        for lessonID in lessonsID:
-            lession_infomation = self.get_item_id(lessonID["id"])
-            for li in lession_infomation:
-                if li["studyplan"] == 100:
-                    self.logger.info(f"{self.name}: 已经学过了：{li['itemname']}，自动跳过。")
-                    continue
-                self.logger.info(f"{self.name}: 开始学习{li['itemname']}")
-                asyncio.run(self.post_schedule(
-                    lessonID["id"],
-                    li["id"],
-                    self.tcid,
-                    li["all_times"],
-                    li["studyplan"],
-                ))
-        self.logger.info(f'=========={self.name} 完成所有课程！==========')
+
+def learn_task(user_info):
+    lc = Learn_Cbit(phone=user_info['phone'], name=user_info['name'],
+                    password=user_info['passwd'], lessonLibrary_id=user_info['tcid'])
+    lc.learn()
 
 
 def __test():
     import json
-    file_path = r'E:/Twikura/token-test.json'
+
+    file_path = 'E:\\Twikura\\token.json'
     with open(file_path, 'r', encoding='utf-8') as file:
         users = json.load(file)
-    user_info = users[0]
-    lc = Learn_Cbit(phone=user_info['phone'], name=user_info['name'],
-                    passwrd=user_info['passwd'], tcid=user_info['tcid'])
-    lc.learn()
+        for u in users:
+            learn_task(u)
 
 
 if __name__ == '__main__':

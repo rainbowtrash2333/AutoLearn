@@ -1,11 +1,11 @@
 import base64
-from Crypto.Cipher import AES
+from Cryptodome.Cipher import AES
 
 
 class AESCipher:
 
     def __init__(self, key, iv="\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"):
-        self.key = key[0:16].encode('utf-8') # 只截取16位
+        self.key = key[0:16].encode('utf-8')  # 只截取16位
         self.iv = iv.encode('utf-8')  # 16位字符，用来填充缺失内容，可固定值也可随机字符串，具体选择看需求。
 
     def __pad(self, text):
@@ -34,10 +34,14 @@ class AESCipher:
         return self.__unpad(cipher.decrypt(enc).decode("utf-8"))
 
 
-if __name__ == '__main__':
-    e = AESCipher('dacf107e4bdbbef0','bcancid682e09aec')
+def __test():
+    e = AESCipher('dacf107e4bdbbef0', 'bcancid682e09aec')
     secret_data = "19184236244"
     enc_str = e.encrypt(secret_data)
     print('enc_str: ' + enc_str.decode())
     dec_str = e.decrypt(enc_str)
     print('dec str: ' + dec_str)
+
+
+if __name__ == '__main__':
+    raise SystemExit(__test())

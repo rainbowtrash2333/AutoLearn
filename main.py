@@ -1,20 +1,26 @@
-import concurrent
+import time
+
+from Learn_Cbit_v2 import Learn_Cbit
 import json
-from Learn_Cbit import Learn_Cbit
+from multiprocessing import Pool
 
 
 def learn_task(user_info):
     lc = Learn_Cbit(phone=user_info['phone'], name=user_info['name'],
-                    passwrd=user_info['passwd'], tcid=user_info['tcid'])
+                    password=user_info['passwd'], lessonLibrary_id=user_info['tcid'])
     lc.learn()
 
 
-if __name__ == "__main__":
-    file_path = 'D:\\Twikura\\token.json'
-    with open(file_path, 'r',encoding='utf-8') as file:
+def __main():
+    file_path = 'E:\\Twikura\\token.json'
+    with open(file_path, 'r', encoding='utf-8') as file:
         users = json.load(file)
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for u in users:
-            executor.submit(learn_task, u)
-    # for u in users:
-    #     learn_task(u)
+        # for u in users:
+            # learn_task(u)
+            # time.sleep(3)
+    with Pool(processes=len(users)) as pool:
+        pool.map(learn_task, users)
+
+
+if __name__ == "__main__":
+    raise SystemExit(__main())
