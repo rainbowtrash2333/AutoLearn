@@ -8,6 +8,7 @@ build/
 venv/
 env/
 *.env
+.venv/
 
 # --- PyCharm IDE 配置 ---
 /.idea/
@@ -30,3 +31,4 @@ Thumbs.db
 # --- 自定义忽略项 ---
 /test/saves/
 /.vscode/
+test.json
