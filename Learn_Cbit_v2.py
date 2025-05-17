@@ -80,22 +80,15 @@ class Learn_Cbit:
         else:
             raise login_failed(f"{self.name} login failed")
 
-    def learn(self):
-        self.__login()
-        lesson_id_list = self.__get_lessons_id()
-        for lesson_id in lesson_id_list:
-            lesson_item_list = self.__get_lesson_items_id(lesson_id)
-            for lesson_item in lesson_item_list:
-                self.__post_schedule(lessonId=lesson_id, itemId=lesson_item["id"], totalTime=lesson_item["time"])
-
     def __get_lessons_id(self) -> list[str]:
         base_url = "https://learning.cbit.com.cn/www/lesson/selectLessonApp.do"
-        data = {"leName": "", "keyword": "", "pageSize": 999, "sort": "createtime",
+        data = {"leName": "", "keyword": "", "pageSize": 9999, "sort": "createtime",
                 "id": self.lessonLibrary_id, "level": 5, "pagetitle": "lessonLibrary"}
         response = RT.post(url=base_url, data=data, headers=self.headers)
         result = dict(response.json())
+        self.logger.debug(f"__get_lessons->response: {result}")
         lesson_id_list = [lesson["id"] for lesson in result["lessonList"]]
-        self.logger.debug(f"__get_lessons->lesson_id_list:{lesson_id_list}")
+
         return lesson_id_list
 
     def __get_lesson_items_id(self, lessonID: str) -> list[dict[str, str]] | None:
@@ -107,13 +100,16 @@ class Learn_Cbit:
             if len(response.text) > 6:
                 result = dict(response.json())
                 if 'lessonitem' in result:
-                    result = [{"id": lesson_item["le_id"], "time": lesson_item["all_times"]} for lesson_item in
-                              result["lessonitem"]]
+                    result = [
+                        {"id": lesson_item["id"], "time": lesson_item["all_times"],
+                         "name": lesson_item["itemname"]}
+                        for lesson_item in
+                        result["lessonitem"]]
 
                     self.logger.debug(f"__get_lesson_items_id->result:{result}")
                     return result
 
-    def __post_schedule(self, lessonId: str, itemId, totalTime, studyplan=0):
+    def __post_schedule(self, lessonId: str, itemId: str, totalTime: float, lesson_name: str, studyplan=0):
         base_url = (
             "https://learning.cbit.com.cn/www/lessonDetails/updateLessonProcessPC.do?"
         )
@@ -124,18 +120,25 @@ class Learn_Cbit:
             "tcid": 'null',
             "totalTime": totalTime,
         }
-
         if self.mode == 'fast':
             data["suspendTime"] = totalTime
             data["studytime"] = totalTime
             url = base_url + urlencode(data)
             for i in range(self.retry):
-                result = RT.post(url=url, data=data, headers=self.headers)
+                response = dict(RT.post(url=url, data=data, headers=self.headers).json())
+                if response['success']:
+                    self.logger.debug(f"__post_schedule->response: {response}")
+                    self.logger.info(f"{self.name}: 已经学习{lesson_name}。")
+                    break
+            else:
+                self.logger.error(f"{self.name}: 课程{lesson_name}失败。")
+                self.logger.error(f"data:{data}\nheader={self.headers}")
 
-        if self.mode == 'nomal':
+        if self.mode == 'normal':
             studytime = totalTime * studyplan / 100
             while totalTime > studytime:
-                self.logger.info(f"{self.name}: 已经学习了{str(studytime)}秒，还剩{str(totalTime - studytime)}秒")
+                self.logger.info(
+                    f"{self.name}: 已经学习{lesson_name} {str(studytime)}秒，还剩{str(totalTime - studytime)}秒")
                 random_num = random.randint(20, 80) // self.speed
                 time.sleep(random_num)
                 studytime = (
@@ -149,6 +152,18 @@ class Learn_Cbit:
                 for i in range(self.retry):
                     result = RT.post(url=url, data=data, headers=self.headers)
 
+    def learn(self):
+        self.__login()
+        lesson_id_list = self.__get_lessons_id()
+        if len(lesson_id_list) == 0:
+            self.logger.error(f"{self.name}未发现课程，请检查课程id")
+            return 0
+        for lesson_id in lesson_id_list:
+            lesson_item_list = self.__get_lesson_items_id(lesson_id)
+            for lesson_item in lesson_item_list:
+                self.__post_schedule(lessonId=lesson_id, itemId=lesson_item["id"], totalTime=float(lesson_item["time"]),
+                                     lesson_name=lesson_item["name"])
+
 
 def learn_task(user_info):
     lc = Learn_Cbit(phone=user_info['phone'], name=user_info['name'],
@@ -159,11 +174,10 @@ def learn_task(user_info):
 def __test():
     import json
 
-    file_path = 'E:\\Twikura\\token.json'
+    file_path = 'D:\\Twikura\\token.json'
     with open(file_path, 'r', encoding='utf-8') as file:
         users = json.load(file)
-        for u in users:
-            learn_task(u)
+        learn_task(users[1])
 
 
 if __name__ == '__main__':
