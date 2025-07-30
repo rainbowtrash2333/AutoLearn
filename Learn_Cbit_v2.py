@@ -7,7 +7,7 @@ import time
 import easyocr
 import logging
 from yamlUtils import Config
-from exceptions import *
+from exceptions import LoginFailed
 
 
 class Learn_Cbit:
@@ -78,7 +78,7 @@ class Learn_Cbit:
             self.headers["Cookie"] = f'AlteonP={AlteonP}; JSESSIONID={JSESSIONID}'
             self.logger.info(f'{self.name} 登录成功')
         else:
-            raise login_failed(f"{self.name} login failed")
+            raise LoginFailed(f"{self.name} login failed")
 
     def __get_lessons_id(self) -> list[str]:
         base_url = "https://learning.cbit.com.cn/www/lesson/selectLessonApp.do"

@@ -8,7 +8,7 @@ import time
 import easyocr
 import logging
 from yamlUtils import Config
-from exceptions import *
+from exceptions import LoginFailed
 import asyncio
 
 
@@ -80,7 +80,7 @@ class Learn_Cbit:
             self.headers["Cookie"] = f'AlteonP={AlteonP}; JSESSIONID={JSESSIONID}'
             self.logger.info(f'{self.name} 登录成功')
         else:
-            raise login_failed(f"{self.name} login failed")
+            raise LoginFailed(f"{self.name} login failed")
 
     def get_lessons_id(self) -> []:
         self.logger.debug('获得lessons id')

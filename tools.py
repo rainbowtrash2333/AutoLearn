@@ -1,11 +1,20 @@
-def str_to_headers(str):
-    for ss in str.strip().split('\n'):
-        s = ss.split(':')
-        print(f"'{s[0].strip()}': '{s[1].strip()}',")
+from typing import Dict, Optional
+
+
+def str_to_headers(header_str: str) -> None:
+    """Convert header string to dictionary format for easy copying
+    
+    Args:
+        header_str: Multi-line string containing HTTP headers
+    """
+    for line in header_str.strip().split('\n'):
+        if ':' in line:
+            key, value = line.split(':', 1)
+            print(f"'{key.strip()}': '{value.strip()}',")
 
 
 if __name__ == '__main__':
-    str = '''
+    sample_headers = '''
         Connection: keep-alive
         Pragma: no-cache
         Cache-Control: no-cache
@@ -21,6 +30,5 @@ if __name__ == '__main__':
         Sec-Fetch-Dest: document
         Accept-Encoding: gzip, deflate, br
         Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6,zh-TW;q=0.5
-
     '''
-    print(str_to_headers(str))
+    str_to_headers(sample_headers)
